@@ -47,27 +47,28 @@ class TempReceiver:
         else:
             if not os.path.exists(fnout):
                 with open(fnout, 'w') as f:
-                    f.write('timestamp temp_c vbat\n')
+                    f.write('timestamp temp_c vbat nmsg rssi\n')
 
             f = open(fnout, 'a')
         try:
             i = 0
             while n is None or i < n:
                 try:
-                    temp_c, v_bat = self.get_data(timeout=timeout)
+                    temp_c, v_bat, nmsg = self.get_data(timeout=timeout)
                     dt = datetime.datetime.now()
 
                     line = str(dt).replace(' ', 'T')
                     line += ' ' + str(temp_c)
                     line += ' ' + str(v_bat)
+                    line += ' ' + str(nmsg)
+                    line += ' ' + str(self.rfm69.last_rssi)
                     print(line)
                     if f is not None:
                         f.write(line)
                         f.write('\n')
                         f.flush()
-                    print('RSSI:', self.rfm69.last_rssi)
                 except Exception as e:
-                    print('Temp receipt failed due to', e)
+                    print('Msg receipt failed due to', e)
                 i += 1
         finally:
             if f is not None:

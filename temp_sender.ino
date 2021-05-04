@@ -11,15 +11,20 @@
 // pin 3 is SCL, 2 is SDA
 #define ONE_WIRE_BUS 3
 
-#define WAIT_MS 10000
+#define WAIT_FAST_MS 1000
+#define WAIT_SLOW_MS 15000
 
-//define to use watchdox for low-power waiting
-#define SLEEP_WAIT 1
 // comment out to turn off LED
-//#define LED           13
+#define LED           13
 
 // don't define to skip reading
 #define VBATPIN A9
+
+// test mode is more power hungry
+bool test_mode = true;
+#define TEST_PIN_1 6
+#define TEST_PIN_2 10
+
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -35,6 +40,13 @@ DeviceAddress insideThermometer;
  */
 void setup(void)
 {
+  // check if we are jumpered together for test mode
+  pinMode(TEST_PIN_2, OUTPUT);
+  digitalWrite(TEST_PIN_2, LOW); 
+  pinMode(TEST_PIN_1, INPUT_PULLUP);
+  test_mode = !digitalRead(TEST_PIN_1);
+  test_mode = true;
+  
   // start serial port
   Serial.begin(9600);
   
@@ -123,9 +135,9 @@ float printTemperature(DeviceAddress deviceAddress)
 
   return tempC;
 }
-/*
- * Main function. It will request the tempC from the sensors and display on Serial.
- */
+
+
+
 void loop(void)
 { 
   // call sensors.requestTemperatures() to issue a global temperature 
@@ -137,20 +149,15 @@ void loop(void)
   // It responds almost immediately. Let's print out the data
   sendTemperature(printTemperature(insideThermometer)); // Use a simple function to print out the data
 
-#ifdef SLEEP_WAIT
+  if (test_mode) {
+    delay(WAIT_FAST_MS);
+  } else {
    //requires Adafruit_SleepyDog
-   int towait = WAIT_MS;
+   int towait = WAIT_SLOW_MS;
    while (towait > 0) {
        towait -= Watchdog.sleep(towait);
    }
-// USBDevice.attach();
-//   Serial.print("waited ");
-//   Serial.print(WAIT_MS - towait);
-//   Serial.println(" ms");
-#else
-  delay(WAIT_MS);
-#endif
-
+  }
 }
 
 // function to print a device address
@@ -181,10 +188,8 @@ void setup_radio(void)
 {
     // Serial should have been started already
 
-    
-#ifdef LED
-  pinMode(LED, OUTPUT);     
-#endif
+  
+  pinMode(LED, OUTPUT);    
   pinMode(RFM69_RST, OUTPUT);
   digitalWrite(RFM69_RST, LOW);
  
@@ -218,6 +223,9 @@ void setup_radio(void)
   rf69.setEncryptionKey(key);
 }
 
+
+int nmsg = 0;
+
 void sendTemperature(float tempC) {
 
  
@@ -230,6 +238,11 @@ void sendTemperature(float tempC) {
   dtostrf(get_vbat() ,4, 2, batstr+6);
   strcat(radiopacket, batstr);
 #endif
+
+
+  char nmsgstr[10];
+  sprintf(nmsgstr , ",n:", nmsg);
+  strcat(radiopacket, nmsgstr);
   
   Serial.print("Sending:\""); Serial.print(radiopacket); Serial.println("\"");
   
@@ -237,17 +250,18 @@ void sendTemperature(float tempC) {
   rf69.send((uint8_t *)radiopacket, strlen(radiopacket));
   rf69.waitPacketSent();
   rf69.sleep();
+  nmsg++;
 
   
-#ifdef LED
-  digitalWrite(LED, HIGH);
-  delay(30);
-  digitalWrite(LED, LOW);
-  delay(30);
-  digitalWrite(LED, HIGH);
-  delay(30);
-  digitalWrite(LED, LOW);    
-#endif
+  if (test_mode || (nmsg < 3)) {
+    digitalWrite(LED, HIGH);
+    delay(30);
+    digitalWrite(LED, LOW);
+    delay(30);
+    digitalWrite(LED, HIGH);
+    delay(30);
+    digitalWrite(LED, LOW);    
+  }
 }
 
 
