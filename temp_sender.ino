@@ -12,7 +12,7 @@
 #define ONE_WIRE_BUS 3
 
 #define WAIT_FAST_MS 1000
-#define WAIT_SLOW_MS 15000
+#define WAIT_SLOW_MS 24000
 
 // comment out to turn off LED
 #define LED           13
@@ -45,7 +45,6 @@ void setup(void)
   digitalWrite(TEST_PIN_2, LOW); 
   pinMode(TEST_PIN_1, INPUT_PULLUP);
   test_mode = !digitalRead(TEST_PIN_1);
-  test_mode = true;
   
   // start serial port
   Serial.begin(9600);
@@ -241,7 +240,7 @@ void sendTemperature(float tempC) {
 
 
   char nmsgstr[10];
-  sprintf(nmsgstr , ",n:", nmsg);
+  sprintf(nmsgstr , ",n:%i", nmsg);
   strcat(radiopacket, nmsgstr);
   
   Serial.print("Sending:\""); Serial.print(radiopacket); Serial.println("\"");

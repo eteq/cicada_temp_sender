@@ -14,7 +14,9 @@ class TempReceiver:
     Receives messages of the form "TempU:##.##,Vbat:###.##"
     and logs them
     """
-    def __init__(self, cspin=board.D16, resetpin=board.D13, spinum=1, freq=433.0):
+    def __init__(self, cspin=board.D16, resetpin=board.D13, spinum=1, freq=433.0, verbose=False):
+        self.verbose = verbose
+
         cs = digitalio.DigitalInOut(cspin)
         reset = digitalio.DigitalInOut(resetpin)
         if spinum==0:
@@ -33,6 +35,8 @@ class TempReceiver:
 
     def get_data(self, **recv_kwargs):
         msg = self.rfm69.receive(**recv_kwargs)
+        if self.verbose:
+            print('Message: "{}"'.format(msg))
         if msg.startswith(b'TempC:'):
             # valid
             floats = [float(c.split(b':')[1]) for c in msg.split(b',')]
@@ -41,13 +45,14 @@ class TempReceiver:
             raise ValueError('Did not get a valid message')
 
     def temp_log(self, timeout=61, fnout=None, n=None):
-
+        headerline = 'timestamp temp_c vbat nmsg rssi'
         if fnout is None:
             f = None
         else:
             if not os.path.exists(fnout):
                 with open(fnout, 'w') as f:
-                    f.write('timestamp temp_c vbat nmsg rssi\n')
+                    f.write(headerline + '\n')
+            print(headerline)
 
             f = open(fnout, 'a')
         try:
@@ -60,7 +65,7 @@ class TempReceiver:
                     line = str(dt).replace(' ', 'T')
                     line += ' ' + str(temp_c)
                     line += ' ' + str(v_bat)
-                    line += ' ' + str(nmsg)
+                    line += ' ' + str(int(nmsg))
                     line += ' ' + str(self.rfm69.last_rssi)
                     print(line)
                     if f is not None:
@@ -80,7 +85,7 @@ class TempReceiver:
         return degc*1.8 + 32
 
 if __name__ == '__main__':
-    r = TempReceiver()
+    r = TempReceiver(verbose=False)
 
     if len(sys.argv) == 1:
         r.temp_log(n=5)
