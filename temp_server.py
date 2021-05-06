@@ -12,7 +12,7 @@ from bokeh.io.export import get_screenshot_as_png
 
 from matplotlib import pyplot as plt
 
-from flask import Flask, send_file
+from flask import Flask, send_file, jsonify
 app = Flask(__name__)
 
 app.config['DATA_FILE'] = os.environ.get('TEMP_SERVER_DATA_FILE', 'temp_data')
@@ -32,15 +32,20 @@ def index():
             header_names.remove('timestamp')
     return 'try /latest/<colname>, /plot/<colname>, /png/<colname>.  <colname> can be: ' + str(header_names)
 
-@app.route('/latest/<colname>')
-def latest(colname):
+@app.route('/latestjson/<colname>')
+def latest_json(colname):
     x, y = get_data(colname)[:2]
+
+    dct = {}
 
     latest_time_idx = np.argmax(x)
     latest_val = y[latest_time_idx]
 
     dt = np.datetime64('now') - x[latest_time_idx].to_numpy()
     sec_since = dt.astype('timedelta64[s]') + 3600*app.config['UTC_OFFSET']
+
+    dct = dict(column_name=colname, latest_val=latest_val,
+               sec_since=int(sec_since.astype(float)))
 
     extra = ''
     if colname.startswith('temp'):
@@ -50,12 +55,20 @@ def latest(colname):
             emergence_temp = EMERGE_TEMP_F
         else:
             return f"Invalid temp! {colname}"
-        diff = emergence_temp - latest_val
-        extra = f' which is {diff:.3} below the emergence temperature.'
-        if diff < 0:
-            extra  = extra + ' EMERGENCE IMMINENT!'
+        dct['temp_diff'] = emergence_temp - latest_val
+        dct['emergence_imminent'] = int(dct['temp_diff'] < 0)
 
-    return f'Latest value for column {colname} was {latest_val:.4}, {sec_since} ago. ' + extra
+    return jsonify(dct)
+
+@app.route('/latest/<colname>')
+def latest(colname):
+    j = latest_json(colname).json
+    extra = ' which is {temp_diff:.3} deg below the emergence temperature.'.format(**j)
+    if j['emergence_imminent']:
+        extra  = extra + ' EMERGENCE IMMINENT!'
+
+    return ('Latest value for column "{column_name}" was {latest_val:.4}, '
+            '{sec_since} seconds ago. '.format(**j) + extra)
 
 @app.route('/plot/<colname>')
 def plot_column(colname):
