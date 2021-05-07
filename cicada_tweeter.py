@@ -40,11 +40,11 @@ def send_tweet(api, serveraddress):
     info = requests.get(f'http://{serveraddress}/latestjson/temp_f').json()
     temp = info['latest_val']
     if temp < 64:
-        tweetstring = f"The current ground temperature is {temp} degrees F, which is below the target temperature. Cicadas are cozy in their burrows."
+        tweetstring = f"The current ground temperature is {temp:.1f} degrees F, which is below the target temperature. Cicadas are cozy in their burrows."
     elif 64 < temp <= 65.5:
-        tweetstring = f"The current ground temperature is {temp}, which might be warm enough for the cicadas to emerge."
+        tweetstring = f"The current ground temperature is {temp:.1f}, which might be warm enough for the cicadas to emerge."
     else:
-        tweetstring = f"The current ground temperature is {temp}, which probably means the cicadas are on the loose!"
+        tweetstring = f"The current ground temperature is {temp:.1f}, which probably means the cicadas are on the loose!"
     print(tweetstring)
     
     image = requests.get(f'http://{serveraddress}/png/temp_f', stream=True)
@@ -56,9 +56,9 @@ def send_tweet(api, serveraddress):
     minval = info['min_24hr']
     maxval = info['max_24hr']
     
-    altstring = (f"A plot of temperature versus time starting from 9pm on May 5th. There is a horizontal "
+    altstring = (f"A plot of temperature versus time for the last 48 hours. There is a horizontal "
                  f"red line marking 64 degrees F. The temperature is currently {trend_map[trend]}. In the last 24 hours, the "
-                 f"minimum value was {minval} and the maximum value was {maxval}")
+                 f"minimum value was {minval:.1f} and the maximum value was {maxval:.1f}")
     
     print(altstring)
     
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(r'cicada_tweeter.cfg')
     ct_cfg = config['cicada_tweeter']
-        
+
     api = get_api(ct_cfg['APIkey'], ct_cfg['APIsecret'], ct_cfg['AccessToken'], ct_cfg['AccessTokenSecret'])
     
     send_tweet(api, ct_cfg['serveraddress'])
@@ -83,4 +83,5 @@ if __name__ == "__main__":
 ##################
 # MARIE look up how to get the API to raise exceptions
 # look up f string formatting to fix sig figs
+# email Erik the config file
 ############
