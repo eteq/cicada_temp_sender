@@ -84,9 +84,12 @@ def latest_json(colname):
 @app.route('/latest/<colname>')
 def latest(colname):
     j = latest_json(colname).json
-    extra = ' which is {temp_diff:.3} deg below the emergence temperature.'.format(**j)
-    if j['emergence_imminent']:
-        extra  = extra + ' EMERGENCE IMMINENT!'
+
+    extra = ''
+    if 'temp_diff' in j:
+        extra = ' which is {temp_diff:.3} deg below the emergence temperature.'.format(**j)
+        if j['emergence_imminent']:
+            extra  = extra + ' EMERGENCE IMMINENT!'
 
     return ('Latest value for column "{column_name}" was {latest_val:.4}, '
             '{sec_since} seconds ago. '.format(**j) + extra)
