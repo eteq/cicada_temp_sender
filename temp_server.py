@@ -37,7 +37,7 @@ def index():
         header_names = header.split()
         if 'timestamp' in header_names:
             header_names.remove('timestamp')
-    return 'try /latest/<colname>, /plot/<colname>, /png/<colname>.  <colname> can be: ' + str(header_names)
+    return 'try /latest/<colname>, /latestjson/<colname>, /plot/<colname>, /png/<colname>.  <colname> can be: ' + str(header_names)
 
 @app.route('/latestjson/<colname>')
 def latest_json(colname):
