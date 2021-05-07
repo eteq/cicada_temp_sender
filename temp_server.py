@@ -10,7 +10,8 @@ from bokeh.resources import CDN, INLINE
 from bokeh.embed import file_html
 from bokeh.io.export import get_screenshot_as_png
 
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from flask import Flask, send_file, jsonify
 app = Flask(__name__)
@@ -112,19 +113,31 @@ def plot_column(colname):
 
     return file_html(p, CDN, "temp_server: " + colname)
 
+
+PRETTY_COLNAMES = {'temp_f': 'Temp (F)', 'temp_c':'Temp (C)'}
+
 @app.route('/png/<colname>')
 def png_column(colname):
     x, y = get_data(colname)[:2]
 
-    fig, ax1 = plt.subplots(figsize=(10, 6))
-    ax1.plot(x, y)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x, y, c='C0')
 
     if colname == 'temp_c':
-        ax1.axhline(EMERGE_TEMP_C, c='r', ls=':', alpha=.5)
+        ax.axhline(f_to_c(app.config['EMERGE_TEMP_F']), c='C1', ls='-', lw=2, alpha=.8)
     elif colname == 'temp_f':
-        ax1.axhline(EMERGE_TEMP_F, c='r', ls=':', alpha=.5)
+        ax.axhline(app.config['EMERGE_TEMP_F'], c='C1', ls='-', lw=2, alpha=.8)
 
-    ax1.set_ylabel(colname)
+    ax.set_ylabel(PRETTY_COLNAMES.get(colname, colname), fontsize=24)
+    ax.yaxis.set_tick_params(rotation=0, labelsize=16)
+
+    ax.set_xlabel('Date & Time', fontsize=24)
+    locator = mdates.AutoDateLocator(minticks=4, maxticks=7)
+    formatter = mdates.ConciseDateFormatter(locator)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    ax.xaxis.set_tick_params(labelsize=16)
+    ax.xaxis.get_offset_text().set_size(16)
 
     fig.tight_layout()
 
