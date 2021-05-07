@@ -73,14 +73,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(r'cicada_tweeter.cfg')
     ct_cfg = config['cicada_tweeter']
-    
-    # These are the credentails for the new bot account
-    #APIkey = "AaZeKnOxJoj0QnX1O8vScxXhg"
-    #APIsecret = "s6hxgDwYZC0gV7EGaG4BTTHipBYGSsqsmhUmOIkw5RGgwYSGd0"
-    #BearerToken = "AAAAAAAAAAAAAAAAAAAAAP1OPQEAAAAAxnvxzzY6I%2FdDF4iJdfEG2BShbiM%3DFwHYP9WRQXwRmtYu4YzJY0VQl0frw5IDkdIqV2ST6m6SSYUHAJ"
-    #AccessToken = "1390679839837937672-vmD3YtURc6WL9MbwjrLgotaAGwjuoW"
-    #AccessTokenSecret = "PbGuOLHppxLJKGUd5VdztdS9esH3DJfS2J28nThd6WFJ6"
-    
+        
     api = get_api(ct_cfg['APIkey'], ct_cfg['APIsecret'], ct_cfg['AccessToken'], ct_cfg['AccessTokenSecret'])
     
     send_tweet(api, ct_cfg['serveraddress'])
