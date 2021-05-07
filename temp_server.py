@@ -25,6 +25,8 @@ app.config['UTC_OFFSET'] =  os.environ.get('TEMP_SERVER_UTC_OFFSET', -4)
 app.config['EMERGE_TEMP_F'] =  os.environ.get('TEMP_SERVER_EMERGE_TEMP_F', 64)
 app.config['TREND_FPERHR'] =  os.environ.get('TEMP_SERVER_TREND_FPERHR', .1)
 
+app.config['PNG_HOURS'] = os.environ.get('TEMP_SERVER_PNG_HOURS', 48)
+
 def f_to_c(degf):
     return (degf - 32)*5/9
 def c_to_f(degc):
@@ -123,6 +125,11 @@ PRETTY_COLNAMES = {'temp_f': 'Temp (F)', 'temp_c':'Temp (C)'}
 def png_column(colname):
     x, y = get_data(colname)[:2]
 
+    dt = np.datetime64('now') - x.to_numpy()
+    hr_since = dt.astype(float)/3.6e12 + app.config['UTC_OFFSET']
+    msk = hr_since < float(app.config['PNG_HOURS'])
+    x, y = [a[msk] for a in (x, y)]
+
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(x, y, c='C0')
 
@@ -135,7 +142,7 @@ def png_column(colname):
     ax.yaxis.set_tick_params(rotation=0, labelsize=16)
 
     ax.set_xlabel('Date & Time', fontsize=24)
-    locator = mdates.AutoDateLocator(minticks=4, maxticks=7)
+    locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
     formatter = mdates.ConciseDateFormatter(locator)
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(formatter)
