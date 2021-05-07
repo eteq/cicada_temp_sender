@@ -18,10 +18,16 @@ app = Flask(__name__)
 app.config['DATA_FILE'] = os.environ.get('TEMP_SERVER_DATA_FILE', 'temp_data')
 
 EMERGE_TEMP_F = 64
-EMERGE_TEMP_C = (EMERGE_TEMP_F - 32)*5/9
 
 app.config['UTC_OFFSET'] =  os.environ.get('TEMP_SERVER_UTC_OFFSET', -4)
 
+app.config['EMERGE_TEMP_F'] =  os.environ.get('TEMP_SERVER_EMERGE_TEMP_F', 64)
+app.config['TREND_FPERHR'] =  os.environ.get('TEMP_SERVER_TREND_FPERHR', .1)
+
+def f_to_c(degf):
+    return (degf - 32)*5/9
+def c_to_f(degc):
+    return degc*9/5 + 32
 
 @app.route('/')
 def index():
@@ -36,27 +42,41 @@ def index():
 def latest_json(colname):
     x, y = get_data(colname)[:2]
 
-    dct = {}
-
     latest_time_idx = np.argmax(x)
     latest_val = y[latest_time_idx]
 
-    dt = np.datetime64('now') - x[latest_time_idx].to_numpy()
-    sec_since = dt.astype('timedelta64[s]') + 3600*app.config['UTC_OFFSET']
+    dt = np.datetime64('now') - x.to_numpy()
+    hr_since = dt.astype(float)/3.6e12 + app.config['UTC_OFFSET']
 
     dct = dict(column_name=colname, latest_val=latest_val,
-               sec_since=int(sec_since.astype(float)))
+                sec_since=int(hr_since[latest_time_idx]*3600))
 
-    extra = ''
+    msk24hr = hr_since < 24
+    y24 = y[msk24hr]
+    dct['min_24hr'] = y24.min()
+    dct['max_24hr'] = y24.max()
+
     if colname.startswith('temp'):
         if colname == 'temp_c':
-            emergence_temp = EMERGE_TEMP_C
+            emergence_temp = f_to_c(app.config['EMERGE_TEMP_F'])
+            slope_threshold = f_to_c(app.config['TREND_FPERHR'])
         elif colname == 'temp_f':
-            emergence_temp = EMERGE_TEMP_F
+            emergence_temp = app.config['EMERGE_TEMP_F']
+            slope_threshold = app.config['TREND_FPERHR']
         else:
             return f"Invalid temp! {colname}"
         dct['temp_diff'] = emergence_temp - latest_val
         dct['emergence_imminent'] = int(dct['temp_diff'] < 0)
+
+        msk2hr = hr_since < 2
+        slope, intercept = np.polyfit(-hr_since[msk2hr], y[msk2hr], 1)
+        dct['slope_2hr'] = slope
+        dct['trend_2hr'] = 0
+        if slope > slope_threshold:
+            dct['trend_2hr'] = 1
+        elif slope < -slope_threshold:
+            dct['trend_2hr'] = -1
+
 
     return jsonify(dct)
 
@@ -81,9 +101,9 @@ def plot_column(colname):
 
     span_temp = None
     if colname == 'temp_c':
-        span_temp = EMERGE_TEMP_C
+        span_temp = f_to_c(app.config['EMERGE_TEMP_F'])
     elif colname == 'temp_f':
-        span_temp = EMERGE_TEMP_F
+        span_temp = app.config['EMERGE_TEMP_F']
 
     if span_temp is not None:
         p.add_layout(Span(location=span_temp,
@@ -120,7 +140,7 @@ def get_data(column_name):
 
     x = df['timestamp']
     if column_name == 'temp_f' and 'temp_f' not in df:
-        y = df['temp_c']*9/5 + 32
+        y = c_to_f(df['temp_c'])
     else:
         y = df[column_name]
 
