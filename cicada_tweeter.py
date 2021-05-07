@@ -73,7 +73,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(r'cicada_tweeter.cfg')
     ct_cfg = config['cicada_tweeter']
-    
+
     api = get_api(ct_cfg['APIkey'], ct_cfg['APIsecret'], ct_cfg['AccessToken'], ct_cfg['AccessTokenSecret'])
     
     send_tweet(api, ct_cfg['serveraddress'])
