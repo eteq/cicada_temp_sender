@@ -5,9 +5,10 @@ Created on Thu May  6 21:56:14 2021
 @author: mvanstav
 """
 
+import os
+import io
 import tweepy
 import requests
-import io
 import configparser
 
 def get_api(api_key, api_secret, access_token, access_token_secret):
@@ -67,11 +68,9 @@ def send_tweet(api, serveraddress):
     api.update_status(tweetstring, media_ids = [image_upload.media_id])
 
 
-
-
 if __name__ == "__main__":
     config = configparser.ConfigParser()
-    config.read(r'cicada_tweeter.cfg')
+    config.read(os.path.join(os.path.split(__file__)[0], 'cicada_tweeter.cfg'))
     ct_cfg = config['cicada_tweeter']
 
     api = get_api(ct_cfg['APIkey'], ct_cfg['APIsecret'], ct_cfg['AccessToken'], ct_cfg['AccessTokenSecret'])
